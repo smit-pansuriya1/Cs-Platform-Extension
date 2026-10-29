@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "CS Platform — WhatsApp Inbox",
+  "version": "1.0.0",
+  "description": "Select text on WhatsApp Web (or any page), right-click → Add to CS Platform. Lands in the CS Platform WhatsApp Inbox for Plain notes.",
+  "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://cs-platform.videosdk.live/*",
+    "http://localhost:3000/*"
+  ],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html", "default_title": "Add to CS Platform" }
+}

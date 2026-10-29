@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add to CS Platform</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Add to CS Platform</h1>
+      <button type="button" id="toggleSettings" class="link">Settings</button>
+    </header>
+
+    <section id="settings" hidden>
+      <label>Server
+        <input id="server" type="url" placeholder="https://cs-platform.videosdk.live" />
+      </label>
+      <label>Inbox key <small>(WA_INBOX_KEY)</small>
+        <input id="key" type="password" autocomplete="off" />
+      </label>
+      <label>Your name
+        <input id="addedBy" type="text" maxlength="80" />
+      </label>
+      <div class="row">
+        <button type="button" id="saveSettings">Save</button>
+        <span id="settingsMsg" class="hint"></span>
+      </div>
+    </section>
+
+    <form id="form">
+      <label>Group
+        <input id="group" list="groups" required maxlength="100" placeholder="WhatsApp group name" />
+        <datalist id="groups"></datalist>
+      </label>
+      <label>Title <small>(optional)</small>
+        <input id="title" maxlength="200" placeholder="e.g. Audio drops on Android" />
+      </label>
+      <label>WhatsApp time <small>(IST)</small>
+        <div class="row">
+          <input id="waTime" type="datetime-local" />
+          <button type="button" id="now" class="ghost">Now</button>
+        </div>
+        <span id="timeHint" class="hint"></span>
+      </label>
+      <label>Text
+        <textarea id="text" rows="10" required placeholder="Selected WhatsApp text (or paste here)"></textarea>
+      </label>
+      <button type="submit" id="submit">Add to inbox</button>
+      <p id="msg" class="msg" role="status"></p>
+    </form>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
