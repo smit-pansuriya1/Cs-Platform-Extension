@@ -123,6 +123,11 @@ async function submit(e) {
   const group = $('group').value.trim()
   const text = $('text').value.trim()
   if (!group || !text) return showMsg('Group and text are required', 'err')
+  if (!/[\p{L}\p{N}]/u.test(text)) return showMsg('Text has no letters or numbers', 'err')
+  if (text.length > 20000) return showMsg('Text is longer than 20000 characters — add it in smaller parts', 'err')
+  if ($('waTime').value && new Date(istLocalToIso($('waTime').value)).getTime() > Date.now() + 15 * 60_000) {
+    return showMsg('WhatsApp time is in the future — check the date', 'err')
+  }
   if (!settings.key) showMsg('No inbox key saved — this only works if the server has no WA_INBOX_KEY')
 
   $('submit').disabled = true
@@ -146,10 +151,12 @@ async function submit(e) {
     settings.lastGroup = group
     await chrome.storage.local.set({ lastGroup: group, recentGroups: recent })
 
-    showMsg(data.duplicate ? `Already in the inbox (${data.status || 'pending'}) — not added twice` : 'Added ✓', 'ok')
+    const hidden = (data.redactions || []).map((r) => `${r.count} ${r.type}`).join(', ')
+    const base = data.duplicate ? `Already in the inbox (${data.status || 'pending'}) — not added twice` : 'Added ✓'
+    showMsg(hidden ? `${base} · hidden for safety: ${hidden}` : base, 'ok')
     $('text').value = ''
     $('title').value = ''
-    if (fromMenu) setTimeout(() => window.close(), 1200)
+    if (fromMenu) setTimeout(() => window.close(), hidden ? 3500 : 1200)
   } catch (err) {
     showMsg(`Not added: ${err.message}`, 'err')
   } finally {

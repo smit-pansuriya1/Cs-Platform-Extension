@@ -2,12 +2,14 @@
 // (popup.html) pre-filled with the selected text.
 const MENU_ID = 'cs-platform-add'
 
+// removeAll first: onInstalled also fires on update/reload, and re-creating an
+// existing id fails ("Cannot create item with duplicate id").
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
+  chrome.contextMenus.removeAll(() => chrome.contextMenus.create({
     id: MENU_ID,
     title: 'Add to CS Platform',
     contexts: ['selection'],
-  })
+  }))
 })
 
 // `info.selectionText` drops line breaks, so read the selection from the page
