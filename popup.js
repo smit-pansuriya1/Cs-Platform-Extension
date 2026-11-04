@@ -5,7 +5,7 @@ const DEFAULT_SERVER = 'https://cs-platform.videosdk.live'
 const $ = (id) => document.getElementById(id)
 const fromMenu = new URLSearchParams(location.search).get('from') === 'menu'
 
-let settings = { server: DEFAULT_SERVER, key: '', addedBy: '', lastGroup: '', recentGroups: [] }
+let settings = { server: DEFAULT_SERVER, key: '', addedBy: '', recentGroups: [] }
 
 // ── IST time helpers ────────────────────────────────────────────────────────
 // Kept in sync with parseWaTimestamp in src/utils/waInbox.js (the server
@@ -49,7 +49,7 @@ function istLocalToIso(value) {
 
 // ── Settings ────────────────────────────────────────────────────────────────
 async function loadSettings() {
-  const s = await chrome.storage.local.get(['server', 'key', 'addedBy', 'lastGroup', 'recentGroups'])
+  const s = await chrome.storage.local.get(['server', 'key', 'addedBy', 'recentGroups'])
   settings = { ...settings, ...s, recentGroups: Array.isArray(s.recentGroups) ? s.recentGroups : [] }
   $('server').value = settings.server || DEFAULT_SERVER
   $('key').value = settings.key || ''
@@ -84,20 +84,124 @@ async function saveSettings() {
   loadGroups()
 }
 
-// ── Groups (server list + recently used) ────────────────────────────────────
+// ── Company picker (server list + recently used) ────────────────────────────
+// Nothing is pre-selected. Type to search; pick a match, or "+ Add new
+// company" creates it on the server (POST /api/wa-inbox/groups).
+let companies = []   // names
+let picked = null    // the chosen company name, or null
+let activeIdx = -1
+const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase()
+
 async function loadGroups() {
-  const names = new Set(settings.recentGroups)
+  const names = new Map(settings.recentGroups.map((n) => [norm(n), n]))
   try {
     const res = await fetch(`${serverBase()}/api/wa-inbox/groups`)
     if (res.ok) {
       const data = await res.json()
-      for (const g of data.groups || []) names.add(g.name)
+      for (const g of data.groups || []) names.set(norm(g.name), g.name)
     }
   } catch {
-    /* offline / wrong server — recent groups still work */
+    $('groupHint').textContent = 'Could not load the company list — check Settings → Server'
   }
-  const list = $('groups')
-  list.replaceChildren(...[...names].sort().map((n) => Object.assign(document.createElement('option'), { value: n })))
+  companies = [...names.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+  if (document.activeElement === $('group')) renderList()
+}
+
+function listItems() {
+  const q = norm($('group').value)
+  if (!q) {
+    const recent = settings.recentGroups.filter((n) => companies.some((c) => norm(c) === norm(n)))
+    const rest = companies.filter((c) => !recent.some((r) => norm(r) === norm(c)))
+    return [...recent.map((name) => ({ name, recent: true })), ...rest.map((name) => ({ name }))]
+  }
+  const items = companies.filter((c) => norm(c).includes(q)).map((name) => ({ name }))
+  if (!companies.some((c) => norm(c) === q)) items.push({ add: $('group').value.trim().replace(/\s+/g, ' ') })
+  return items
+}
+
+function renderList() {
+  const ul = $('groupList')
+  const items = listItems()
+  if (activeIdx >= items.length) activeIdx = items.length - 1
+  if (!items.length) {
+    ul.replaceChildren(Object.assign(document.createElement('li'), { className: 'muted', textContent: 'No companies yet — type a name to add one' }))
+  } else {
+    ul.replaceChildren(...items.map((it, i) => {
+      const li = document.createElement('li')
+      li.setAttribute('role', 'option')
+      if (i === activeIdx) li.className = 'active'
+      if (it.add) {
+        li.classList.add('add')
+        li.textContent = `+ Add new company "${it.add}"`
+      } else {
+        li.textContent = it.name
+        if (it.recent) li.append(Object.assign(document.createElement('small'), { className: 'hint', textContent: 'recent' }))
+      }
+      // mousedown, not click: fires before the input's blur closes the list
+      li.addEventListener('mousedown', (e) => { e.preventDefault(); choose(it) })
+      return li
+    }))
+  }
+  ul.hidden = false
+  $('group').setAttribute('aria-expanded', 'true')
+  ul.querySelector('li.active')?.scrollIntoView({ block: 'nearest' })
+}
+
+function closeList() {
+  $('groupList').hidden = true
+  $('group').setAttribute('aria-expanded', 'false')
+  activeIdx = -1
+}
+
+function setPicked(name) {
+  picked = name
+  $('group').value = name || $('group').value
+  $('group').classList.toggle('picked', Boolean(name))
+  const hint = $('groupHint')
+  hint.className = name ? 'hint ok' : 'hint'
+  hint.textContent = name ? `✓ ${name}` : 'Pick from the list, or type a new name and add it'
+}
+
+async function choose(it) {
+  closeList()
+  if (!it.add) return setPicked(it.name)
+  const name = it.add
+  $('groupHint').className = 'hint'
+  $('groupHint').textContent = `Adding ${name}…`
+  try {
+    const res = await fetch(`${serverBase()}/api/wa-inbox/groups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(settings.key ? { 'x-cs-key': settings.key } : {}) },
+      body: JSON.stringify({ name }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+    const saved = data.group?.name || name
+    if (!companies.some((c) => norm(c) === norm(saved))) companies.push(saved)
+    setPicked(saved)
+    $('groupHint').textContent = data.created ? `✓ ${saved} added to the company list` : `✓ ${saved} (already in the list)`
+  } catch (err) {
+    $('groupHint').className = 'hint err'
+    $('groupHint').textContent = `Could not add company: ${err.message}`
+  }
+}
+
+function onGroupKey(e) {
+  const open = !$('groupList').hidden
+  const n = listItems().length
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault()
+    activeIdx = n ? (activeIdx + (e.key === 'ArrowDown' ? 1 : -1) + n) % n : -1
+    renderList()
+  } else if (e.key === 'Enter' && open) {
+    e.preventDefault() // never submit the form from the search box
+    const items = listItems()
+    const q = norm($('group').value)
+    const it = items[activeIdx] || items.find((x) => x.name && norm(x.name) === q) || (items.length === 1 ? items[0] : null)
+    if (it) choose(it)
+  } else if (e.key === 'Escape') {
+    closeList()
+  }
 }
 
 // ── Form ────────────────────────────────────────────────────────────────────
@@ -120,9 +224,15 @@ function showMsg(text, kind) {
 
 async function submit(e) {
   e.preventDefault()
-  const group = $('group').value.trim()
+  // Typed an existing name exactly without clicking it → take it.
+  if (!picked) {
+    const exact = companies.find((c) => norm(c) === norm($('group').value))
+    if (exact) setPicked(exact)
+  }
+  const group = picked
   const text = $('text').value.trim()
-  if (!group || !text) return showMsg('Group and text are required', 'err')
+  if (!group) return showMsg('Pick a company from the list (or add it as new)', 'err')
+  if (!text) return showMsg('Text is required', 'err')
   if (!/[\p{L}\p{N}]/u.test(text)) return showMsg('Text has no letters or numbers', 'err')
   if (text.length > 20000) return showMsg('Text is longer than 20000 characters — add it in smaller parts', 'err')
   if ($('waTime').value && new Date(istLocalToIso($('waTime').value)).getTime() > Date.now() + 15 * 60_000) {
@@ -148,8 +258,7 @@ async function submit(e) {
 
     const recent = [group, ...settings.recentGroups.filter((g) => g !== group)].slice(0, 15)
     settings.recentGroups = recent
-    settings.lastGroup = group
-    await chrome.storage.local.set({ lastGroup: group, recentGroups: recent })
+    await chrome.storage.local.set({ recentGroups: recent })
 
     const hidden = (data.redactions || []).map((r) => `${r.count} ${r.type}`).join(', ')
     const base = data.duplicate ? `Already in the inbox (${data.status || 'pending'}) — not added twice` : 'Added ✓'
@@ -166,11 +275,16 @@ async function submit(e) {
 
 async function init() {
   await loadSettings()
-  $('group').value = settings.lastGroup || ''
+  // No company pre-selected — pick it every time.
 
   if (fromMenu) {
     const { draft } = await chrome.storage.session.get('draft')
     if (draft?.text) $('text').value = draft.text
+    if (draft?.structured) {
+      $('textHint').textContent = `· ${draft.messages} message${draft.messages === 1 ? '' : 's'} with sender + time`
+    } else if (/web\.whatsapp\.com/.test(draft?.pageUrl || '')) {
+      $('textHint').textContent = '· plain text (sender/time not found — check before adding)'
+    }
     await chrome.storage.session.remove('draft')
   }
   setTimeFromText()
@@ -184,7 +298,11 @@ async function init() {
   })
   $('text').addEventListener('change', setTimeFromText)
   $('form').addEventListener('submit', submit)
-  ;($('group').value ? $('title') : $('group')).focus()
+  $('group').addEventListener('focus', () => renderList())
+  $('group').addEventListener('input', () => { setPicked(null); activeIdx = -1; renderList() })
+  $('group').addEventListener('keydown', onGroupKey)
+  $('group').addEventListener('blur', () => setTimeout(closeList, 120))
+  $('group').focus()
 }
 
 init()

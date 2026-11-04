@@ -17,9 +17,19 @@ it's compressed (optional, Gemini) and added to a Plain thread as an internal no
 ## Use
 
 - **Right-click** a selection → the form opens with the text filled in.
+  On WhatsApp Web every selected message comes in WhatsApp's own copy format,
+  one per line, even if you only selected part of a message:
+  `[1:40 pm, 3/11/2026] Smit Pansuriya: Let me check.` — "Read more" is
+  expanded first so long messages aren't cut, replies show
+  `[replying to: "…"]`, and date dividers / bare times are dropped
+  (`capture.js`). The form shows "N messages with sender + time"; if it says
+  "plain text", WhatsApp's page changed — check the text before adding.
 - Or click the toolbar icon and paste text by hand.
-- **Group** — pick from the list (groups already in CS Platform + your recent ones) or type a new one.
-- **WhatsApp time (IST)** — filled from the first `[14:32, 29/10/2026]` stamp in the text, else now. Change it if needed.
-- Adding the same text with the same group and time twice is ignored (shows "Already in the inbox").
+- **Company** — nothing is pre-selected. Type to search the company list
+  (starting list + every company added so far; your recent ones first), click
+  one (or ↑/↓ + Enter). Not in the list → **+ Add new company "…"** adds it to
+  CS Platform for everyone.
+- **WhatsApp time (IST)** — filled from the first `[1:40 pm, 3/11/2026]` stamp in the text (day/month/year), else now. Change it if needed.
+- Adding the same text with the same company and time twice is ignored (shows "Already in the inbox").
 
 After pulling an update, click **Reload** on the extension card in `chrome://extensions`.

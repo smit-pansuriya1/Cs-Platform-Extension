@@ -30,10 +30,14 @@
     </section>
 
     <form id="form">
-      <label>Group
-        <input id="group" list="groups" required maxlength="100" placeholder="WhatsApp group name" />
-        <datalist id="groups"></datalist>
-      </label>
+      <div class="field">
+        <label for="group">Company</label>
+        <div class="combo">
+          <input id="group" maxlength="100" autocomplete="off" placeholder="Search company…" role="combobox" aria-expanded="false" aria-controls="groupList" />
+          <ul id="groupList" class="combo-list" role="listbox" hidden></ul>
+        </div>
+        <span id="groupHint" class="hint">Pick from the list, or type a new name and add it</span>
+      </div>
       <label>Title <small>(optional)</small>
         <input id="title" maxlength="200" placeholder="e.g. Audio drops on Android" />
       </label>
@@ -44,7 +48,7 @@
         </div>
         <span id="timeHint" class="hint"></span>
       </label>
-      <label>Text
+      <label>Text <span id="textHint" class="hint"></span>
         <textarea id="text" rows="10" required placeholder="Selected WhatsApp text (or paste here)"></textarea>
       </label>
       <button type="submit" id="submit">Add to inbox</button>

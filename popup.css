@@ -52,3 +52,19 @@ button.link { background: none; border: none; padding: 0; color: var(--muted); t
 .msg { margin: 0; min-height: 1em; font-size: 12px; }
 .msg.ok { color: var(--ok); }
 .msg.err { color: var(--err); }
+.field { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
+.combo { position: relative; }
+.combo-list {
+  position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px);
+  max-height: 220px; overflow-y: auto; margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.combo-list li { padding: 6px 8px; border-radius: 6px; color: var(--text); cursor: pointer; }
+.combo-list li.active, .combo-list li:hover { background: rgba(167, 155, 255, 0.15); }
+.combo-list li.add { color: var(--accent); font-weight: 600; }
+.combo-list li.muted { color: var(--muted); cursor: default; background: none; }
+.combo-list li small { margin-left: 6px; }
+input.picked { border-color: rgba(110, 231, 183, 0.5); }
+.hint.ok { color: var(--ok); }
+.hint.err { color: var(--err); }
