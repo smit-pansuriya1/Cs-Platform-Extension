@@ -28,6 +28,13 @@ it's compressed (optional, Gemini) and added to a Plain thread as an internal no
   of a long selection was scrolled out of WhatsApp's loaded chat, the plain
   selection is used and the form says so. The character counter under the text
   shows the full length (limit 20,000).
+- **Long selections (30+ messages):** WhatsApp only keeps the messages near the
+  screen loaded, so a drag-selection that scrolls loses its start. `capture.js`
+  runs on web.whatsapp.com and records every message while you drag, so the
+  right-click form AND normal **Ctrl+C** get the whole selection, in chat order.
+  Copying inside one message (e.g. a meeting ID) stays normal. A long message
+  that scrolled away before its "Read more" could be opened is flagged in the
+  form — check its end.
 - Or click the toolbar icon and paste text by hand.
 - **Company** — nothing is pre-selected. Type to search the company list
   (starting list + every company added so far; your recent ones first), click

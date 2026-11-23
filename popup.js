@@ -290,7 +290,8 @@ async function init() {
     if (draft?.text) $('text').value = draft.text
     if (draft?.structured) {
       const more = draft.expanded ? ` · ${draft.expanded} “Read more” expanded` : ''
-      $('textHint').textContent = `· ${draft.messages} message${draft.messages === 1 ? '' : 's'} with sender + time${more}`
+      const cut = draft.cutOff ? ` · ⚠ ${draft.cutOff} long message(s) scrolled away before “Read more” could open — check their ends` : ''
+      $('textHint').textContent = `· ${draft.messages} message${draft.messages === 1 ? '' : 's'} with sender + time${more}${cut}`
     } else if (draft?.partial) {
       $('textHint').textContent = '· plain text — part of the selection was scrolled out of WhatsApp; check it is complete'
     } else if (/web\.whatsapp\.com/.test(draft?.pageUrl || '')) {

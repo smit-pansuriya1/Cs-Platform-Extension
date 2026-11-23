@@ -13,20 +13,38 @@ chrome.runtime.onInstalled.addListener(() => {
 })
 
 // `info.selectionText` drops line breaks and, on WhatsApp Web, who sent each
-// message and when — so read the selection from the page itself (allowed by
-// activeTab, which the menu click grants). captureSelection (capture.js)
-// rebuilds "[time, date] Name: text" lines on WhatsApp Web. Falls back to
-// selectionText if the page can't be scripted.
-importScripts('capture.js')
+// message and when — and WhatsApp unloads messages that scroll away, so a long
+// selection is incomplete by the time of the right-click. capture.js (content
+// script on web.whatsapp.com) records every selected message while you drag;
+// ask it for the capture. Tabs opened before the extension was (re)loaded
+// don't have it yet → inject it once, then ask. Other pages: plain selection.
+const isWhatsApp = (url) => /^https:\/\/web\.whatsapp\.com\//.test(url || '')
+
+async function askContentScript(tabId) {
+  return chrome.tabs.sendMessage(tabId, { type: 'cs-capture' })
+}
 
 async function readSelection(tab, info) {
+  if (isWhatsApp(tab.url || info.pageUrl)) {
+    try {
+      let out
+      try {
+        out = await askContentScript(tab.id)
+      } catch {
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['capture.js'] })
+        out = await askContentScript(tab.id)
+      }
+      if (out?.text) return out
+    } catch {
+      /* fall through to the plain selection */
+    }
+  }
   try {
     const [res] = await chrome.scripting.executeScript({
       target: { tabId: tab.id, allFrames: false },
-      func: captureSelection,
+      func: () => String(window.getSelection() || '').trim(),
     })
-    const out = res?.result
-    if (out?.text) return out
+    if (res?.result) return { text: res.result, structured: false }
   } catch {
     /* chrome:// pages, PDF viewer, etc. */
   }
@@ -35,8 +53,8 @@ async function readSelection(tab, info) {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ID) return
-  const { text, structured, messages, expanded, partial } = await readSelection(tab, info)
-  await chrome.storage.session.set({ draft: { text, structured, messages, expanded, partial, pageUrl: info.pageUrl || '', at: Date.now() } })
+  const { text, structured, messages, expanded, partial, cutOff } = await readSelection(tab, info)
+  await chrome.storage.session.set({ draft: { text, structured, messages, expanded, partial, cutOff, pageUrl: info.pageUrl || '', at: Date.now() } })
   await chrome.windows.create({
     url: chrome.runtime.getURL('popup.html?from=menu'),
     type: 'popup',
