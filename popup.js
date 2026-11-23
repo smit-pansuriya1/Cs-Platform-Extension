@@ -273,6 +273,14 @@ async function submit(e) {
   }
 }
 
+// Live length so a long paste is visibly complete (and under the 20000 limit).
+function showCount() {
+  const n = $('text').value.length
+  const el = $('count')
+  el.textContent = n ? `${n.toLocaleString()} / 20,000 chars` : ''
+  el.className = n > 20000 ? 'hint err' : 'hint'
+}
+
 async function init() {
   await loadSettings()
   // No company pre-selected — pick it every time.
@@ -281,7 +289,10 @@ async function init() {
     const { draft } = await chrome.storage.session.get('draft')
     if (draft?.text) $('text').value = draft.text
     if (draft?.structured) {
-      $('textHint').textContent = `· ${draft.messages} message${draft.messages === 1 ? '' : 's'} with sender + time`
+      const more = draft.expanded ? ` · ${draft.expanded} “Read more” expanded` : ''
+      $('textHint').textContent = `· ${draft.messages} message${draft.messages === 1 ? '' : 's'} with sender + time${more}`
+    } else if (draft?.partial) {
+      $('textHint').textContent = '· plain text — part of the selection was scrolled out of WhatsApp; check it is complete'
     } else if (/web\.whatsapp\.com/.test(draft?.pageUrl || '')) {
       $('textHint').textContent = '· plain text (sender/time not found — check before adding)'
     }
@@ -297,6 +308,8 @@ async function init() {
     $('timeHint').textContent = ''
   })
   $('text').addEventListener('change', setTimeFromText)
+  $('text').addEventListener('input', showCount)
+  showCount()
   $('form').addEventListener('submit', submit)
   $('group').addEventListener('focus', () => renderList())
   $('group').addEventListener('input', () => { setPicked(null); activeIdx = -1; renderList() })

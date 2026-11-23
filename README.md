@@ -20,10 +20,14 @@ it's compressed (optional, Gemini) and added to a Plain thread as an internal no
   On WhatsApp Web every selected message comes in WhatsApp's own copy format,
   one per line, even if you only selected part of a message:
   `[1:40 pm, 3/11/2026] Smit Pansuriya: Let me check.` — "Read more" is
-  expanded first so long messages aren't cut, replies show
+  expanded first, in rounds until none is left (WhatsApp reveals a very long
+  message in chunks, and copying by hand gets only the visible part), replies show
   `[replying to: "…"]`, and date dividers / bare times are dropped
   (`capture.js`). The form shows "N messages with sender + time"; if it says
-  "plain text", WhatsApp's page changed — check the text before adding.
+  "plain text", WhatsApp's page changed — check the text before adding. If part
+  of a long selection was scrolled out of WhatsApp's loaded chat, the plain
+  selection is used and the form says so. The character counter under the text
+  shows the full length (limit 20,000).
 - Or click the toolbar icon and paste text by hand.
 - **Company** — nothing is pre-selected. Type to search the company list
   (starting list + every company added so far; your recent ones first), click

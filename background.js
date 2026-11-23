@@ -35,8 +35,8 @@ async function readSelection(tab, info) {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ID) return
-  const { text, structured, messages } = await readSelection(tab, info)
-  await chrome.storage.session.set({ draft: { text, structured, messages, pageUrl: info.pageUrl || '', at: Date.now() } })
+  const { text, structured, messages, expanded, partial } = await readSelection(tab, info)
+  await chrome.storage.session.set({ draft: { text, structured, messages, expanded, partial, pageUrl: info.pageUrl || '', at: Date.now() } })
   await chrome.windows.create({
     url: chrome.runtime.getURL('popup.html?from=menu'),
     type: 'popup',
